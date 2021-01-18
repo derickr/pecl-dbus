@@ -25,6 +25,16 @@
 #include "config.h"
 #endif
 
+#if PHP_VERSION_ID >= 80000
+#ifndef TSRMLS_D
+#define TSRMLS_D void
+#define TSRMLS_DC
+#define TSRMLS_C
+#define TSRMLS_CC
+#define TSRMLS_FETCH()
+#endif
+#endif /* PHP_VERSION_ID >= 80000 */
+
 #include "Zend/zend_hash.h"
 
 #define PHP_DBUS_VERSION "0.2.0"
