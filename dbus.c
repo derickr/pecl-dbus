@@ -1015,8 +1015,8 @@ php_dbus_do_method_call(php_dbus_obj *dbus,
 		method_args = safe_emalloc(sizeof(zval *), num_elems, 0);
 	}
 
-	if (call_user_function_ex(EG(function_table), object, &callback, &retval,
-				              num_elems, method_args, 0, NULL) == SUCCESS) {
+	if (call_user_function(EG(function_table), object, &callback, &retval,
+				              num_elems, method_args) == SUCCESS) {
 		if (!Z_ISUNDEF(retval)) {
 			reply = dbus_message_new_method_return(msg);
 			php_dbus_append_parameters(reply, &retval, NULL,
