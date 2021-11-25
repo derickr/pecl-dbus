@@ -1202,6 +1202,7 @@ static int dbus_append_var_array(DBusMessageIter *iter, php_dbus_array_obj *obj 
 	DBusMessageIter listiter;
 	char *type_string;
 	zval *entry;
+	HashPosition pos;
 
 	if (obj->signature) {
 		type_string = ecalloc(1, 1 + strlen(obj->signature));
@@ -1214,7 +1215,7 @@ static int dbus_append_var_array(DBusMessageIter *iter, php_dbus_array_obj *obj 
 
 	dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, type_string, &listiter);
 
-	zend_hash_internal_pointer_reset(Z_ARRVAL_P(obj->elements));
+	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(obj->elements), &pos);
 	while (DBUS_ZEND_HASH_GET_CURRENT_DATA_CHECK(Z_ARRVAL_P(obj->elements), entry)) {
 		if (php_dbus_fetch_child_type(entry TSRMLS_CC) == obj->type) {
 			dbus_append_var(&entry, &listiter, NULL TSRMLS_CC);
@@ -1233,6 +1234,7 @@ static int dbus_append_var_dict(DBusMessageIter *iter, php_dbus_dict_obj *obj TS
 	zval *entry;
 	dbus_zend_hash_key_info key;
 	ulong num_index;
+	HashPosition pos;
 
 	if (obj->signature) {
 		if (strlen(obj->signature) < 4) {
@@ -1260,7 +1262,7 @@ static int dbus_append_var_dict(DBusMessageIter *iter, php_dbus_dict_obj *obj TS
 
 	dbus_message_iter_open_container(iter, DBUS_TYPE_ARRAY, type_string, &listiter);
 
-	zend_hash_internal_pointer_reset(Z_ARRVAL_P(obj->elements));
+	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(obj->elements), &pos);
 	while (DBUS_ZEND_HASH_GET_CURRENT_DATA_CHECK(Z_ARRVAL_P(obj->elements), entry)) {
 		DBUS_ZEND_HASH_GET_CURRENT_KEY_INFO(Z_ARRVAL_P(obj->elements), num_index, key); 
 		if (key.type == HASH_KEY_IS_STRING) {
