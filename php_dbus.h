@@ -1,4 +1,4 @@
-/* 
+/*
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
@@ -28,6 +28,13 @@
 #include "Zend/zend_hash.h"
 
 #define PHP_DBUS_VERSION "0.2.0"
+
+#if PHP_VERSION_ID >= 80000
+# define TSRMLS_DC
+# define TSRMLS_CC
+# define TSRMLS_D void
+# define TSRMLS_C
+#endif
 
 # define DBUS_ZEND_OBJECT_PROPERTIES_INIT(_objPtr, _ce) \
     object_properties_init(&_objPtr->std, _ce); \

@@ -297,9 +297,13 @@ PHP_DBUS_FORWARD_DECL_TYPE_FUNCS(int64);
 PHP_DBUS_FORWARD_DECL_TYPE_FUNCS(uint64);
 PHP_DBUS_FORWARD_DECL_TYPE_FUNCS(double);
 
-static zend_object* dbus_object_clone_dbus(zval *this_ptr TSRMLS_DC);
 
+#if PHP_VERSION_ID >= 80000
+static zend_object* dbus_object_clone_dbus(zend_object *this_obj);
+#else
+static zend_object* dbus_object_clone_dbus(zval *this_ptr TSRMLS_DC);
 static int dbus_object_compare_dbus(zval *d1, zval *d2 TSRMLS_DC);
+#endif
 
 static const zend_module_dep dbus_deps[] = {
 	ZEND_MOD_REQUIRED("libxml")
@@ -405,7 +409,11 @@ static void dbus_register_classes(TSRMLS_D)
 	dbus_ce_dbus = zend_register_internal_class_ex(&ce_dbus, NULL);
 	memcpy(&dbus_object_handlers_dbus, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 	dbus_object_handlers_dbus.clone_obj = dbus_object_clone_dbus;
+#if PHP_VERSION_ID < 80000
 	dbus_object_handlers_dbus.compare_objects = dbus_object_compare_dbus;
+#else
+	dbus_object_handlers_dbus.compare = zend_objects_not_comparable;
+#endif
 
 	zend_declare_class_constant_long(dbus_ce_dbus, "BYTE", sizeof("BYTE")-1, DBUS_TYPE_BYTE TSRMLS_CC);
 	zend_declare_class_constant_long(dbus_ce_dbus, "BOOLEAN", sizeof("BOOLEAN")-1, DBUS_TYPE_BOOLEAN TSRMLS_CC);
@@ -505,6 +513,18 @@ static zend_object* dbus_object_new_dbus(zend_class_entry *class_type TSRMLS_DC)
 	return dbus_object_new_dbus_ex(class_type, NULL TSRMLS_CC);
 }
 
+#if PHP_VERSION_ID >= 80000
+static zend_object* dbus_object_clone_dbus(zend_object *this_obj)
+{
+	zend_object* new_ov;
+
+	zend_object *new_obj = NULL;
+	zend_objects_clone_members(new_obj, this_obj);
+	new_ov = new_obj;
+
+	return new_ov;
+}
+#else
 static zend_object* dbus_object_clone_dbus(zval *this_ptr TSRMLS_DC)
 {
 	zend_object* new_ov;
@@ -521,6 +541,7 @@ static int dbus_object_compare_dbus(zval *d1, zval *d2 TSRMLS_DC)
 {
 	return 0;
 }
+#endif
 
 static void dbus_object_free_storage_dbus(void *object TSRMLS_DC)
 {
@@ -857,7 +878,7 @@ static void php_dbus_introspect(php_dbus_object_obj *dbusobj, php_dbus_obj* dbus
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Out of memory.");
 	}
 
-	if (NULL == pending) { 
+	if (NULL == pending) {
 		dbus_message_unref(msg);
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pending call null.");
 	}
@@ -888,7 +909,7 @@ static void php_dbus_introspect(php_dbus_object_obj *dbusobj, php_dbus_obj* dbus
 			dbusobj->introspect_xml = php_dbus_find_interface_node(dbusobj->introspect_xml_doc, interface);
 		}
 
-		dbus_message_unref(msg);   
+		dbus_message_unref(msg);
 		dbus_pending_call_unref(pending);
 	}
 }
@@ -907,7 +928,7 @@ PHP_METHOD(DbusObject, __construct)
 	dbus_set_error_handling(EH_THROW, NULL TSRMLS_CC);
 	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Osss!",
 		&object, dbus_ce_dbus,
-		&destination, &destination_len, &path, &path_len, 
+		&destination, &destination_len, &path, &path_len,
 		&interface, &interface_len))
 	{
 		DBUS_ZEND_ADDREF_P(object);
@@ -935,7 +956,7 @@ PHP_METHOD(Dbus, createProxy)
 
 	dbus_set_error_handling(EH_THROW, NULL TSRMLS_CC);
 	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sss!",
-		&destination, &destination_len, &path, &path_len, 
+		&destination, &destination_len, &path, &path_len,
 		&interface, &interface_len))
 	{
 		DBUS_ZEND_GET_ZVAL_OBJECT(object, dbus, php_dbus_obj);
@@ -1008,8 +1029,12 @@ php_dbus_do_method_call(php_dbus_obj *dbus,
 		method_args = safe_emalloc(sizeof(zval *), num_elems, 0);
 	}
 
+#if PHP_VERSION_ID >= 80000
+	if (call_user_function(EG(function_table), object, &callback, &retval, num_elems, method_args) == SUCCESS) {
+#else
 	if (call_user_function_ex(EG(function_table), object, &callback, &retval,
 				              num_elems, method_args, 0, NULL) == SUCCESS) {
+#endif
 		if (!Z_ISUNDEF(retval)) {
 			reply = dbus_message_new_method_return(msg);
 			php_dbus_append_parameters(reply, &retval, NULL,
@@ -1128,7 +1153,7 @@ PHP_METHOD(Dbus, requestName)
 
 	/* request our name on the bus and check for errors */
 	ret = dbus_bus_request_name(dbus->con, name, DBUS_NAME_FLAG_REPLACE_EXISTING, &err);
-	if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret) { 
+	if (DBUS_REQUEST_NAME_REPLY_PRIMARY_OWNER != ret) {
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Not Primary Owner (%d)\n", ret);
 	}
 	dbus_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
@@ -1264,7 +1289,7 @@ static int dbus_append_var_dict(DBusMessageIter *iter, php_dbus_dict_obj *obj TS
 
 	zend_hash_internal_pointer_reset_ex(Z_ARRVAL_P(obj->elements), &pos);
 	while (DBUS_ZEND_HASH_GET_CURRENT_DATA_CHECK(Z_ARRVAL_P(obj->elements), entry)) {
-		DBUS_ZEND_HASH_GET_CURRENT_KEY_INFO(Z_ARRVAL_P(obj->elements), num_index, key); 
+		DBUS_ZEND_HASH_GET_CURRENT_KEY_INFO(Z_ARRVAL_P(obj->elements), num_index, key);
 		if (key.type == HASH_KEY_IS_STRING) {
 			dbus_message_iter_open_container(&listiter, DBUS_TYPE_DICT_ENTRY, NULL, &dictiter);
 			dbus_message_iter_append_basic(&dictiter, DBUS_TYPE_STRING, &(key.name));
@@ -1791,7 +1816,7 @@ PHP_METHOD(DbusObject, __call)
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Out of memory.");
 	}
 
-	if (NULL == pending) { 
+	if (NULL == pending) {
 		dbus_message_unref(msg);
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Pending call null.");
 	}
@@ -1813,7 +1838,7 @@ PHP_METHOD(DbusObject, __call)
 		RETURN_NULL();
 	} else {
 		php_dbus_handle_reply(return_value, msg, 0 TSRMLS_CC);
-		dbus_message_unref(msg);   
+		dbus_message_unref(msg);
 		dbus_pending_call_unref(pending);
 	}
 }
@@ -1880,7 +1905,7 @@ PHP_METHOD(DbusSignal, __construct)
 	dbus_set_error_handling(EH_THROW, NULL TSRMLS_CC);
 	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Osss",
 		&object, dbus_ce_dbus,
-		&object_name, &object_name_len, &interface, &interface_len, 
+		&object_name, &object_name_len, &interface, &interface_len,
 		&signal, &signal_len))
 	{
 		DBUS_ZEND_ADDREF_P(object);
