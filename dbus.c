@@ -46,6 +46,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_dbus_object___call, 0, 0, 2)
 	ZEND_ARG_INFO(0, function_name)
 	ZEND_ARG_INFO(0, arguments)
 ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_dbus_setDefaultTimeout, 0, 0, 1)
+	ZEND_ARG_INFO(0, timeout_ms)
+ZEND_END_ARG_INFO()
+
 /* }}} */
 
 const zend_function_entry dbus_funcs_dbus[] = {
@@ -55,6 +60,7 @@ const zend_function_entry dbus_funcs_dbus[] = {
 	PHP_ME(Dbus, requestName, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Dbus, registerObject, arginfo_void, ZEND_ACC_PUBLIC)
 	PHP_ME(Dbus, createProxy, arginfo_void, ZEND_ACC_PUBLIC)
+	PHP_ME(Dbus, setDefaultTimeout, arginfo_dbus_setDefaultTimeout, ZEND_ACC_PUBLIC)
 	PHP_FE_END
 };
 
@@ -169,6 +175,7 @@ static zend_object_handlers dbus_object_handlers_dbus_struct, dbus_object_handle
 typedef struct _php_dbus_obj {
 	DBusConnection *con;
 	int             useIntrospection;
+	int             default_timeout_ms;
 	HashTable       objects; /* A hash with all the registered objects that can be called */
 	zend_object     std;
 } php_dbus_obj;
@@ -831,6 +838,7 @@ static int dbus_initialize(php_dbus_obj *dbusobj, int type, int introspect TSRML
 	}
 	dbusobj->con = con;
 	dbusobj->useIntrospection = introspect;
+	dbusobj->default_timeout_ms = -1;
 	zend_hash_init(&dbusobj->objects, 16, NULL, NULL, 0);
 
 	return 1;
@@ -876,7 +884,8 @@ static void php_dbus_introspect(php_dbus_object_obj *dbusobj, php_dbus_obj* dbus
 	dbus_message_iter_init_append(msg, &iter);
 	dbus_message_iter_append_basic(&iter, DBUS_TYPE_BOOLEAN, &bool_false);
 
-	if (!dbus_connection_send_with_reply(dbus->con, msg, &pending, -1)) {
+	if (!dbus_connection_send_with_reply(dbus->con, msg, &pending,
+										 dbus->default_timeout_ms)) {
 		dbus_message_unref(msg);
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Out of memory.");
 	}
@@ -970,6 +979,26 @@ PHP_METHOD(Dbus, createProxy)
 		if (dbus->useIntrospection) {
 			php_dbus_introspect(dbus_object, dbus, destination, path, interface TSRMLS_CC);
 		}
+	}
+	dbus_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
+}
+/* }}} */
+
+/* {{{ proto Dbus::setDefaultTimeout(int timeout_ms)
+   Set timeout for D-Bus method calls
+*/
+PHP_METHOD(Dbus, setDefaultTimeout)
+{
+	zval *object = getThis();
+	php_dbus_obj *dbus;
+	long timeout_ms;
+
+	dbus_set_error_handling(EH_THROW, NULL TSRMLS_CC);
+	if (SUCCESS == zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l",
+		&timeout_ms))
+	{
+		DBUS_ZEND_GET_ZVAL_OBJECT(object, dbus, php_dbus_obj);
+		dbus->default_timeout_ms = (int)timeout_ms;
 	}
 	dbus_set_error_handling(EH_NORMAL, NULL TSRMLS_CC);
 }
@@ -1814,7 +1843,8 @@ PHP_METHOD(DbusObject, __call)
 	php_dbus_append_parameters(msg, data, dbus_object->introspect_xml ? php_dbus_find_method_node(dbus_object->introspect_xml->children, name) : NULL, PHP_DBUS_CALL_FUNCTION TSRMLS_CC);
 
 	/* send message and get a handle for a reply */
-	if (!dbus_connection_send_with_reply(dbus_object->dbus->con, msg, &pending, -1)) {
+	if (!dbus_connection_send_with_reply(dbus_object->dbus->con, msg, &pending,
+										 dbus_object->dbus->default_timeout_ms)) {
 		dbus_message_unref(msg);
 		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Out of memory.");
 	}
