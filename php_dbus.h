@@ -27,13 +27,23 @@
 
 #include "Zend/zend_hash.h"
 
-#define PHP_DBUS_VERSION "0.2.0"
+#define PHP_DBUS_VERSION "0.3.x-dev"
 
 #if PHP_VERSION_ID >= 80000
 # define TSRMLS_DC
 # define TSRMLS_CC
 # define TSRMLS_D void
 # define TSRMLS_C
+# define dbus_object_type zend_object
+# define dbus_object_handlers_dbus_object dbus_object_handlers_zend_object
+#define DBUS_OBJ_WRAPPER DBUS_GET_OBJECT
+
+# define dbus_strip_obj
+#else
+# define dbus_object_type zval
+# define dbus_object_handlers_dbus_object dbus_object_handlers_zval
+# define dbus_strip_obj(o) Z_OBJ_P(o)
+#define DBUS_OBJ_WRAPPER DBUS_ZVAL_GET_OBJECT
 #endif
 
 # define DBUS_ZEND_OBJECT_PROPERTIES_INIT(_objPtr, _ce) \
@@ -74,6 +84,10 @@
             efree(str); \
         } \
     } while(0)
+
+#define DBUS_GET_OBJECT(class_entry, o) (class_entry *)((char *)o - XtOffsetOf(class_entry, std))
+#define DBUS_ZVAL_GET_OBJECT(class_entry, z) DBUS_GET_OBJECT(class_entry, Z_OBJ_P(z))
+
 
 # define DBUS_ZEND_HASH_ADD_PTR(_ht, _key, _ptr, _ptrSz) \
     zend_hash_str_add_ptr(_ht, _key, strlen(_key), _ptr)
@@ -119,12 +133,6 @@
             _ht.u.flags = 0; \
         } \
     } while (0)
-
-# define DBUS_ZEND_ZOBJ_TO_OBJ(_zObj, _objType) \
-    (_objType *) ((char *) _zObj - XtOffsetOf(_objType, std))
-
-# define DBUS_ZEND_GET_ZVAL_OBJECT(_zval, _objPtr, _objType) \
-    _objPtr = DBUS_ZEND_ZOBJ_TO_OBJ(Z_OBJ_P(_zval), _objType)
 
 # define DBUS_ZEND_MAKE_STD_ZVAL(_zval) \
     { \
