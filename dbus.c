@@ -356,7 +356,6 @@ PHP_RINIT_FUNCTION(dbus)
 /* {{{ PHP_RSHUTDOWN_FUNCTION */
 PHP_RSHUTDOWN_FUNCTION(dbus)
 {
-	dbus_shutdown();
 	return SUCCESS;
 }
 /* }}} */
