@@ -49,7 +49,7 @@
 # define DBUS_ZEND_OBJECT_PROPERTIES_INIT(_objPtr, _ce) \
     object_properties_init(&_objPtr->std, _ce); \
     if (!_objPtr->std.properties) { \
-        rebuild_object_properties(&_objPtr->std); \
+        zend_std_get_properties_ex(&_objPtr->std); \
     };
 
 # define DBUS_ZEND_OBJECT_ALLOC(_objPtr, _ce) \
