@@ -119,7 +119,7 @@
 # define DBUS_ZEND_HASH_GET_CURRENT_KEY_INFO(_ht, _idx, _info) \
     do { \
         zend_string *tmp_info = NULL; \
-        _info.type = zend_hash_get_current_key(_ht, &tmp_info, &_idx); \
+        _info.type = zend_hash_get_current_key(_ht, &tmp_info, (zend_ulong *)&_idx); \
         if (tmp_info) { \
             _info.name = ZSTR_VAL(tmp_info); \
             _info.length = ZSTR_LEN(tmp_info); \
