@@ -46,11 +46,19 @@
 #define DBUS_OBJ_WRAPPER DBUS_ZVAL_GET_OBJECT
 #endif
 
+#if PHP_VERSION_ID >= 80400
+# define DBUS_ZEND_OBJECT_PROPERTIES_INIT(_objPtr, _ce) \
+    object_properties_init(&_objPtr->std, _ce); \
+    if (!_objPtr->std.properties) { \
+        zend_std_get_properties_ex(&_objPtr->std); \
+    };
+#else
 # define DBUS_ZEND_OBJECT_PROPERTIES_INIT(_objPtr, _ce) \
     object_properties_init(&_objPtr->std, _ce); \
     if (!_objPtr->std.properties) { \
         rebuild_object_properties(&_objPtr->std); \
     };
+#endif
 
 # define DBUS_ZEND_OBJECT_ALLOC(_objPtr, _ce) \
     do { \
