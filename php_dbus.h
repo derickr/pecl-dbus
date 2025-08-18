@@ -27,7 +27,7 @@
 
 #include "Zend/zend_hash.h"
 
-#define PHP_DBUS_VERSION "0.4.0"
+#define PHP_DBUS_VERSION "0.4.1"
 
 #if PHP_VERSION_ID >= 80000
 # define TSRMLS_DC

@@ -1,0 +1,9 @@
+{
+    "name": "pecl/dbus",
+    "type": "php-ext",
+    "license": "PHP-3.01",
+    "description": "This extension allows you to talk to DBUS services on a system, and also act as a DBUS service.",
+    "require": {
+        "php": ">=8.0,<8.6"
+    }
+}
