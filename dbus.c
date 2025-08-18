@@ -437,15 +437,15 @@ static void dbus_register_classes(TSRMLS_D)
 	zend_declare_class_constant_long(dbus_ce_dbus, "BUS_SYSTEM", sizeof("BUS_SYSTEM")-1, DBUS_BUS_SYSTEM TSRMLS_CC);
 
 	INIT_CLASS_ENTRY(ce_dbus_exception, "DbusException", NULL);
-	dbus_ce_dbus_exception = zend_register_internal_class_ex(&ce_dbus_exception, zend_exception_get_default(TSRMLS_C));
+	dbus_ce_dbus_exception = zend_register_internal_class_ex(&ce_dbus_exception, zend_ce_exception);
 	dbus_ce_dbus_exception->ce_flags |= ZEND_ACC_FINAL;
 
 	INIT_CLASS_ENTRY(ce_dbus_exception_service, "DbusExceptionServiceUnknown", NULL);
-	dbus_ce_dbus_exception_service = zend_register_internal_class_ex(&ce_dbus_exception_service, zend_exception_get_default(TSRMLS_C));
+	dbus_ce_dbus_exception_service = zend_register_internal_class_ex(&ce_dbus_exception_service, zend_ce_exception);
 	dbus_ce_dbus_exception_service->ce_flags |= ZEND_ACC_FINAL;
 
 	INIT_CLASS_ENTRY(ce_dbus_exception_method, "DbusExceptionUnknownMethod", NULL);
-	dbus_ce_dbus_exception_method = zend_register_internal_class_ex(&ce_dbus_exception_method, zend_exception_get_default(TSRMLS_C));
+	dbus_ce_dbus_exception_method = zend_register_internal_class_ex(&ce_dbus_exception_method, zend_ce_exception);
 	dbus_ce_dbus_exception_method->ce_flags |= ZEND_ACC_FINAL;
 
 	INIT_CLASS_ENTRY(ce_dbus_object, "DbusObject", dbus_funcs_dbus_object);
